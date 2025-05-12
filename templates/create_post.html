@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Gönderi Oluştur | LinkedIn Klonu{% endblock %}
+
+{% block content %}
+<div class="form-container" style="max-width: 600px; margin: 40px auto; background-color: white; border-radius: 8px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); padding: 30px;">
+    <h1 style="margin-bottom: 24px;">Gönderi Oluştur</h1>
+    
+    <form method="post" action="{{ url_for('create_post') }}" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="content">Ne hakkında konuşmak istersiniz?</label>
+            <textarea id="content" name="content" required></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="image">Fotoğraf Ekle (İsteğe bağlı)</label>
+            <input type="file" id="image" name="image" accept="image/*">
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn">Paylaş</button>
+            <a href="{{ url_for('index') }}" class="btn secondary">İptal</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

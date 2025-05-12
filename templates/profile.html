@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user.username }} | LinkedIn Klonu{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <!-- Profil Banner ve Temel Bilgiler -->
+    <div class="profile-banner">
+        <div class="profile-avatar">
+            <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) if user.profile_pic else url_for('static', filename='default_profile.png') }}" alt="{{ user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+        </div>
+    </div>
+    
+    <div class="profile-info">
+        <div class="profile-info-header">
+            <div>
+                <h1 class="profile-info-name">{{ user.username }}</h1>
+                <p class="profile-info-headline">{{ user.headline or "Profil başlığı" }}</p>
+                <p class="profile-info-location">{{ user.location or "Konum" }} &middot; {{ user.industry or "Sektör" }}</p>
+                <p class="profile-info-connections">{{ user.followed.count() }} bağlantı</p>
+            </div>
+            <div>
+                {% if current_user.id == user.id %}
+                    <a href="{{ url_for('edit_profile') }}" class="btn">Profili Düzenle</a>
+                {% else %}
+                    {% if connection %}
+                        {% if connection.status == 'pending' %}
+                            {% if connection.user_id == current_user.id %}
+                                <button class="btn secondary" disabled>Bağlantı İsteği Gönderildi</button>
+                            {% else %}
+                                <form action="{{ url_for('accept_connection', connection_id=connection.id) }}" method="post" style="display: inline;">
+                                    <button type="submit" class="btn">Bağlantı İsteğini Kabul Et</button>
+                                </form>
+                                <form action="{{ url_for('reject_connection', connection_id=connection.id) }}" method="post" style="display: inline;">
+                                    <button type="submit" class="btn secondary">Reddet</button>
+                                </form>
+                            {% endif %}
+                        {% elif connection.status == 'accepted' %}
+                            <button class="btn secondary" disabled>Bağlantı Kuruldu</button>
+                            <a href="{{ url_for('send_message', recipient_id=user.id) }}" class="btn">Mesaj Gönder</a>
+                        {% endif %}
+                    {% else %}
+                        <form action="{{ url_for('send_connection_request', user_id=user.id) }}" method="post">
+                            <button type="submit" class="btn">Bağlantı Kur</button>
+                        </form>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Hakkında -->
+    <div class="profile-section">
+        <div class="profile-section-header">
+            <h2 class="profile-section-title">Hakkında</h2>
+            {% if current_user.id == user.id %}
+                <a href="{{ url_for('edit_profile') }}" class="btn secondary">Düzenle</a>
+            {% endif %}
+        </div>
+        <p>{{ user.bio or "Henüz bir biyografi eklenmemiş." }}</p>
+    </div>
+    
+    <!-- İş Deneyimi -->
+    <div class="profile-section">
+        <div class="profile-section-header">
+            <h2 class="profile-section-title">İş Deneyimi</h2>
+            {% if current_user.id == user.id %}
+                <a href="{{ url_for('add_experience') }}" class="btn secondary">+ Ekle</a>
+            {% endif %}
+        </div>
+        {% for experience in experiences %}
+            <div class="profile-section-item">
+                <div class="profile-section-logo">
+                    <i class="fas fa-building" style="font-size: 24px; color: #0a66c2;"></i>
+                </div>
+                <div class="profile-section-info">
+                    <h3>{{ experience.title }}</h3>
+                    <h4>{{ experience.company }}</h4>
+                    <p>{{ experience.location }}</p>
+                    <p class="profile-section-date">
+                        {{ experience.start_date.strftime('%B %Y') }} - 
+                        {% if experience.end_date %}
+                            {{ experience.end_date.strftime('%B %Y') }}
+                        {% else %}
+                            Şu anda
+                        {% endif %}
+                    </p>
+                    {% if experience.description %}
+                        <p>{{ experience.description }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <p>Henüz iş deneyimi eklenmemiş.</p>
+        {% endfor %}
+    </div>
+    
+    <!-- Eğitim -->
+    <div class="profile-section">
+        <div class="profile-section-header">
+            <h2 class="profile-section-title">Eğitim</h2>
+            {% if current_user.id == user.id %}
+                <a href="{{ url_for('add_education') }}" class="btn secondary">+ Ekle</a>
+            {% endif %}
+        </div>
+        {% for education in educations %}
+            <div class="profile-section-item">
+                <div class="profile-section-logo">
+                    <i class="fas fa-university" style="font-size: 24px; color: #0a66c2;"></i>
+                </div>
+                <div class="profile-section-info">
+                    <h3>{{ education.school }}</h3>
+                    <h4>{{ education.degree }}, {{ education.field_of_study }}</h4>
+                    <p class="profile-section-date">
+                        {{ education.start_date.strftime('%B %Y') }} - 
+                        {% if education.end_date %}
+                            {{ education.end_date.strftime('%B %Y') }}
+                        {% else %}
+                            Şu anda
+                        {% endif %}
+                    </p>
+                    {% if education.description %}
+                        <p>{{ education.description }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <p>Henüz eğitim bilgisi eklenmemiş.</p>
+        {% endfor %}
+    </div>
+    
+    <!-- Yetenekler -->
+    <div class="profile-section">
+        <div class="profile-section-header">
+            <h2 class="profile-section-title">Yetenekler</h2>
+            {% if current_user.id == user.id %}
+                <a href="{{ url_for('add_skill') }}" class="btn secondary">+ Ekle</a>
+            {% endif %}
+        </div>
+        <div class="skills-list">
+            {% for skill in skills %}
+                <div class="skill-item">
+                    <span class="skill-name">{{ skill.name }}</span>
+                    <span class="skill-endorsements">{{ skill.endorsements }}</span>
+                </div>
+            {% else %}
+                <p>Henüz yetenek eklenmemiş.</p>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Gönderiler -->
+    <div class="profile-section">
+        <div class="profile-section-header">
+            <h2 class="profile-section-title">Gönderiler</h2>
+            {% if current_user.id == user.id %}
+                <a href="{{ url_for('create_post') }}" class="btn secondary">+ Gönderi Oluştur</a>
+            {% endif %}
+        </div>
+        {% for post in posts %}
+            <div class="post-card" style="box-shadow: none; margin-bottom: 10px;">
+                <div class="post-header">
+                    <img src="{{ url_for('static', filename='uploads/' + post.author.profile_pic) if post.author.profile_pic else url_for('static', filename='default_profile.png') }}" alt="{{ post.author.username }}">
+                    <div class="post-header-info">
+                        <h3>{{ post.author.username }}</h3>
+                        <p>{{ post.author.headline or "" }}</p>
+                        <p>{{ post.created_at.strftime('%d %B %Y, %H:%M') }}</p>
+                    </div>
+                </div>
+                <div class="post-content">
+                    <p>{{ post.content }}</p>
+                    {% if post.image_url %}
+                        <img src="{{ url_for('static', filename='uploads/' + post.image_url) }}" alt="Gönderi Görseli" class="post-image">
+                    {% endif %}
+                </div>
+                <div class="post-stats">
+                    <div>
+                        <i class="fas fa-thumbs-up"></i> {{ post.likes.count() }} beğenme
+                    </div>
+                    <div>
+                        <a href="{{ url_for('post_comments', post_id=post.id) }}">{{ post.comments.count() }} yorum</a>
+                    </div>
+                </div>
+                <div class="post-actions">
+                    {% if current_user.is_authenticated %}
+                        {% set user_like = post.likes.filter_by(user_id=current_user.id).first() %}
+                        <button class="post-action like-button" data-post-id="{{ post.id }}">
+                            <i class="{{ 'fas' if user_like else 'far' }} fa-thumbs-up"></i>
+                            <span class="like-count">{{ post.likes.count() }}</span> Beğen
+                        </button>
+                    {% else %}
+                        <button class="post-action">
+                            <i class="far fa-thumbs-up"></i> Beğen
+                        </button>
+                    {% endif %}
+                    <a href="{{ url_for('post_comments', post_id=post.id) }}" class="post-action">
+                        <i class="far fa-comment"></i> Yorum Yap
+                    </a>
+                    <button class="post-action">
+                        <i class="fas fa-share"></i> Paylaş
+                    </button>
+                    <button class="post-action">
+                        <i class="far fa-paper-plane"></i> Gönder
+                    </button>
+                </div>
+                {% if current_user.is_authenticated and post.author.id == current_user.id %}
+                    <form action="{{ url_for('delete_post', post_id=post.id) }}" method="post" style="text-align: right; margin-top: 10px;">
+                        <button type="submit" class="btn secondary" onclick="return confirm('Bu gönderiyi silmek istediğinize emin misiniz?')">
+                            <i class="fas fa-trash"></i> Sil
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        {% else %}
+            <p>Henüz gönderi bulunmuyor.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

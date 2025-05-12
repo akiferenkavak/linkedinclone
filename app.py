@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 from models import db, User, Post, Comment, Like, Experience, Education, Skill, Message, Connection
 
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'linkedin-clone-secret-key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///linkedin.db'
@@ -461,9 +462,15 @@ def notifications():
                           connection_requests=connection_requests)
 
 # Veritabanını oluştur
-@app.before_first_request
-def create_tables():
-    db.create_all()
+#@app.before_first_request
+#def create_tables():
+#    db.create_all()
+
+
+@app.context_processor
+def inject_now():
+    return {'now': datetime.now()}
+
 
 if __name__ == '__main__':
     app.run(debug=True)

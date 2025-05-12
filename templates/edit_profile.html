@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Profili Düzenle | LinkedIn Klonu{% endblock %}
+
+{% block content %}
+<div class="form-container" style="max-width: 600px; margin: 40px auto; background-color: white; border-radius: 8px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); padding: 30px;">
+    <h1 style="margin-bottom: 24px;">Profili Düzenle</h1>
+    
+    <form method="post" action="{{ url_for('edit_profile') }}" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="profile_pic">Profil Fotoğrafı</label>
+            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) if current_user.profile_pic else url_for('static', filename='default_profile.png') }}" alt="{{ current_user.username }}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-right: 20px;">
+                <input type="file" id="profile_pic" name="profile_pic" accept="image/*">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="headline">Başlık</label>
+            <input type="text" id="headline" name="headline" value="{{ current_user.headline or '' }}">
+            <small>Örn: Yazılım Geliştirici @ ABC Şirketi</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="bio">Hakkında</label>
+            <textarea id="bio" name="bio">{{ current_user.bio or '' }}</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="location">Konum</label>
+            <input type="text" id="location" name="location" value="{{ current_user.location or '' }}">
+            <small>Örn: İstanbul, Türkiye</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="industry">Sektör</label>
+            <input type="text" id="industry" name="industry" value="{{ current_user.industry or '' }}">
+            <small>Örn: Bilişim Teknolojileri</small>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn">Kaydet</button>
+            <a href="{{ url_for('profile', username=current_user.username) }}" class="btn secondary">İptal</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
