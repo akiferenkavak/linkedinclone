@@ -4,6 +4,7 @@ from datetime import datetime
 from flask_login import UserMixin
 
 
+
 db = SQLAlchemy()
 
 # Takip etme ilişkisini tanımlayan ara tablo
@@ -146,3 +147,5 @@ class Connection(db.Model):
     
     user = db.relationship('User', foreign_keys=[user_id])
     connected = db.relationship('User', foreign_keys=[connected_id])
+
+

@@ -1,0 +1,153 @@
+{% extends "admin/base_admin.html" %}
+
+{% block admin_title %}Kullanıcı Detayı: {{ user.username }}{% endblock %}
+
+{% block admin_content %}
+<div class="admin-user-detail">
+    <div class="user-profile-header">
+        <div class="user-avatar">
+            <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) if user.profile_pic else url_for('static', filename='default_profile.png') }}" alt="{{ user.username }}">
+        </div>
+        <div class="user-info">
+            <h2>{{ user.username }}</h2>
+            <p class="user-headline">{{ user.headline if user.headline else 'Başlık Eklenmemiş' }}</p>
+            <p class="user-email"><i class="fas fa-envelope"></i> {{ user.email }}</p>
+            <p class="user-location"><i class="fas fa-map-marker-alt"></i> {{ user.location if user.location else 'Konum Eklenmemiş' }}</p>
+            <div class="user-status">
+                <span class="badge {{ 'admin' if user.is_admin else 'user' }}">
+                    {{ 'Admin' if user.is_admin else 'Kullanıcı' }}
+                </span>
+                <span class="status-badge {{ 'active' if user.is_active else 'inactive' }}">
+                    {{ 'Aktif' if user.is_active else 'Deaktif' }}
+                </span>
+            </div>
+        </div>
+        <div class="user-actions">
+            <a href="{{ url_for('profile', username=user.username) }}" class="btn primary" target="_blank">
+                <i class="fas fa-eye"></i> Profili Görüntüle
+            </a>
+            
+            <form action="{{ url_for('toggle_user_active', user_id=user.id) }}" method="post" class="inline-form">
+                <button type="submit" class="btn {{ 'danger' if user.is_active else 'success' }}">
+                    {{ 'Deaktif Et' if user.is_active else 'Aktif Et' }}
+                </button>
+            </form>
+            
+            <form action="{{ url_for('toggle_user_admin', user_id=user.id) }}" method="post" class="inline-form">
+                <button type="submit" class="btn {{ 'danger' if user.is_admin else 'primary' }}">
+                    {{ 'Admin Yetkisini Kaldır' if user.is_admin else 'Admin Yap' }}
+                </button>
+            </form>
+            
+            <form action="{{ url_for('delete_user', user_id=user.id) }}" method="post" class="inline-form" onsubmit="return confirm('Bu kullanıcıyı ve tüm verilerini silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')">
+                <button type="submit" class="btn danger">
+                    <i class="fas fa-trash"></i> Kullanıcıyı Sil
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="user-detail-sections">
+        <div class="detail-section">
+            <div class="admin-panel-card">
+                <h3>Profil Bilgileri</h3>
+                <table class="detail-table">
+                    <tr>
+                        <th>Kullanıcı ID:</th>
+                        <td>{{ user.id }}</td>
+                    </tr>
+                    <tr>
+                        <th>Kayıt Tarihi:</th>
+                        <td>{{ user.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                    </tr>
+                    <tr>
+                        <th>Sektör:</th>
+                        <td>{{ user.industry if user.industry else 'Eklenmemiş' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Biyografi:</th>
+                        <td>{{ user.bio if user.bio else 'Eklenmemiş' }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <div class="admin-panel-card">
+                <h3>Gönderiler ({{ posts|length }})</h3>
+                {% if posts %}
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>İçerik</th>
+                            <th>Tarih</th>
+                            <th>Etkileşimler</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for post in posts %}
+                        <tr>
+                            <td>{{ post.id }}</td>
+                            <td>{{ post.content[:100] + '...' if post.content|length > 100 else post.content }}</td>
+                            <td>{{ post.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                            <td>
+                                <span title="Beğeni"><i class="fas fa-thumbs-up"></i> {{ post.likes.count() }}</span>
+                                <span title="Yorum"><i class="fas fa-comment"></i> {{ post.comments.count() }}</span>
+                            </td>
+                            <td>
+                                <form action="{{ url_for('admin_delete_post', post_id=post.id) }}" method="post" class="inline-form" onsubmit="return confirm('Bu gönderiyi silmek istediğinize emin misiniz?')">
+                                    <button type="submit" class="btn-small danger">Sil</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="no-data">Kullanıcının henüz bir gönderisi bulunmuyor.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <div class="admin-panel-card">
+                <h3>Bağlantılar ({{ connections|length }})</h3>
+                {% if connections %}
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Kullanıcı</th>
+                            <th>Bağlantı Durumu</th>
+                            <th>Bağlantı Tarihi</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for connection in connections %}
+                        {% set connected_user = User.query.get(connection.connected_id if connection.user_id == user.id else connection.user_id) %}
+                        <tr>
+                            <td>
+                                <div class="user-info">
+                                    <img src="{{ url_for('static', filename='uploads/' + connected_user.profile_pic) if connected_user.profile_pic else url_for('static', filename='default_profile.png') }}" alt="{{ connected_user.username }}">
+                                    <span>{{ connected_user.username }}</span>
+                                </div>
+                            </td>
+                            <td>{{ connection.status }}</td>
+                            <td>{{ connection.created_at.strftime('%d.%m.%Y') }}</td>
+                            <td>
+                                <a href="{{ url_for('admin_user_detail', user_id=connected_user.id) }}" class="btn-small">Kullanıcıyı Görüntüle</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="no-data">Kullanıcının henüz bir bağlantısı bulunmuyor.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
