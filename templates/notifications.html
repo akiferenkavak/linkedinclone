@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container my-4">
+    <h1 class="mb-4">Bildirimler</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Bağlantı İstekleri</h5>
+        </div>
+        <div class="card-body">
+            {% if connection_requests %}
+                <div class="list-group">
+                    {% for connection in connection_requests %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ url_for('static', filename='uploads/' + connection.user.profile_pic) }}" alt="Profil Resmi" class="rounded-circle mr-3" style="width: 50px; height: 50px;">
+                                <div>
+                                    <h6 class="mb-0">
+                                        <a href="{{ url_for('profile', username=connection.user.username) }}">{{ connection.user.username }}</a>
+                                    </h6>
+                                    <small class="text-muted">{{ connection.user.headline }}</small>
+                                    <p class="text-muted mb-0">
+                                        <small>{{ connection.created_at.strftime('%d %B %Y, %H:%M') }}</small>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="btn-group">
+                                <form action="{{ url_for('accept_connection', connection_id=connection.id) }}" method="post" class="mr-2">
+                                    <button type="submit" class="btn btn-outline-success">Kabul Et</button>
+                                </form>
+                                <form action="{{ url_for('reject_connection', connection_id=connection.id) }}" method="post">
+                                    <button type="submit" class="btn btn-outline-danger">Reddet</button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted mb-0">Şu anda bağlantı isteği bulunmuyor.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h5>Okunmamış Mesajlar</h5>
+        </div>
+        <div class="card-body">
+            {% if unread_messages %}
+                <div class="list-group">
+                    {% for message in unread_messages %}
+                        <a href="{{ url_for('conversation', user_id=message.sender_id) }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ url_for('static', filename='uploads/' + message.sender.profile_pic) }}" alt="Profil Resmi" class="rounded-circle mr-3" style="width: 50px; height: 50px;">
+                                <div class="w-100">
+                                    <div class="d-flex justify-content-between">
+                                        <h6 class="mb-0">{{ message.sender.username }}</h6>
+                                        <small class="text-muted">{{ message.timestamp.strftime('%H:%M') }}</small>
+                                    </div>
+                                    <p class="mb-0 text-truncate" style="max-width: 250px;">{{ message.content }}</p>
+                                    <small class="text-muted">{{ message.timestamp.strftime('%d %B %Y') }}</small>
+                                </div>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted mb-0">Şu anda okunmamış mesajınız bulunmuyor.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

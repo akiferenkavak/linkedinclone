@@ -35,7 +35,7 @@ def index():
         posts = current_user.followed_posts()
     else:
         posts = Post.query.order_by(Post.created_at.desc()).limit(10).all()
-    return render_template('index.html', title='Ana Sayfa', posts=posts)
+    return render_template('index.html', title='Ana Sayfa', posts=posts, User=User)
 
 # Kayıt ol
 @app.route('/register', methods=['GET', 'POST'])

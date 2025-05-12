@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}LinkedIn Klonu{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <a href="{{ url_for('index') }}" class="logo">LinkedIn</a>
+            
+            <div class="search-box">
+                <form action="{{ url_for('search') }}" method="get">
+                    <i class="fas fa-search"></i>
+                    <input type="text" name="q" placeholder="Arama yap...">
+                </form>
+            </div>
+            
+            <nav>
+                <ul>
+                    {% if current_user.is_authenticated %}
+                        <li>
+                            <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' else '' }}">
+                                <i class="fas fa-home"></i>
+                                <span>Ana Sayfa</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('connections') }}" class="{{ 'active' if request.endpoint == 'connections' else '' }}">
+                                <i class="fas fa-user-friends"></i>
+                                <span>Ağım</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('messages') }}" class="{{ 'active' if request.endpoint == 'messages' else '' }}">
+                                <i class="fas fa-comment-dots"></i>
+                                <span>Mesajlar</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('notifications') }}" class="{{ 'active' if request.endpoint == 'notifications' else '' }}">
+                                <i class="fas fa-bell"></i>
+                                <span>Bildirimler</span>
+                            </a>
+                        </li>
+                        <li class="profile-dropdown">
+                            <a href="{{ url_for('profile', username=current_user.username) }}">
+                                <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) if current_user.profile_pic else url_for('static', filename='default_profile.png') }}" alt="{{ current_user.username }}" style="width: 24px; height: 24px; border-radius: 50%;">
+                                <span>Ben</span>
+                            </a>
+                            <div class="dropdown-menu">
+                                <ul>
+                                    <li><a href="{{ url_for('profile', username=current_user.username) }}">Profilim</a></li>
+                                    <li><a href="{{ url_for('edit_profile') }}">Profili Düzenle</a></li>
+                                    <li><a href="{{ url_for('logout') }}">Çıkış Yap</a></li>
+                                </ul>
+                            </div>
+                        </li>
+                    {% else %}
+                        <li>
+                            <a href="{{ url_for('login') }}">
+                                <i class="fas fa-sign-in-alt"></i>
+                                <span>Giriş Yap</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('register') }}">
+                                <i class="fas fa-user-plus"></i>
+                                <span>Kayıt Ol</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </header>
+    
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category else 'success' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block sidebar %}
+        <!-- Yan menü içeriği buraya eklenebilir -->
+        {% endblock %}
+        
+        <div class="content-area">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container">
+            <p>&copy; {{ now.year }} LinkedIn Klonu</p>
+            <div class="footer-links">
+                {% block footer_links %}
+                <a href="#">Hakkımızda</a>
+                <a href="#">Gizlilik Politikası</a>
+                <a href="#">Kullanım Şartları</a>
+                <a href="#">İletişim</a>
+                {% endblock %}
+            </div>
+        </div>
+    </footer>
+
+    {% block scripts %}
+    <script>
+        // Like işlemi için AJAX
+        document.addEventListener('DOMContentLoaded', function() {
+            const likeButtons = document.querySelectorAll('.like-button');
+            
+            likeButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const postId = this.getAttribute('data-post-id');
+                    
+                    fetch(`/like/${postId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const likeCount = this.querySelector('.like-count');
+                        likeCount.textContent = data.likes;
+                        
+                        if (data.status === 'liked') {
+                            this.querySelector('i').classList.remove('far');
+                            this.querySelector('i').classList.add('fas');
+                        } else {
+                            this.querySelector('i').classList.remove('fas');
+                            this.querySelector('i').classList.add('far');
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+                });
+            });
+        });
+    </script>
+    {% endblock %}
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
