@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h4>Yetenek Ekle</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('add_skill') }}">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Yetenek Adı</label>
+                    <input type="text" class="form-control" id="name" name="name" required>
+                    <div class="form-text">Örn: JavaScript, Proje Yönetimi, Grafik Tasarım, Veri Analizi</div>
+                </div>
+                
+                <div class="d-flex mt-4">
+                    <button type="submit" class="btn btn-primary me-2">Ekle</button>
+                    <a href="{{ url_for('profile', username=current_user.username) }}" class="btn btn-secondary">İptal</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Mevcut Yetenekleriniz</h5>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for skill in current_user.skills %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ skill.name }}
+                    <span class="badge bg-primary rounded-pill">{{ skill.endorsements }} Onay</span>
+                </li>
+                {% else %}
+                <li class="list-group-item text-muted">Henüz yetenek eklenmemiş.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <p class="text-muted mt-3">
+            <i class="fas fa-info-circle"></i> Yetenekleriniz profilinizde görüntülenecek ve ağınızdaki kişiler tarafından onaylanabilecektir.
+        </p>
+    </div>
+</div>
+{% endblock %}

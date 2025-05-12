@@ -471,6 +471,19 @@ def notifications():
 def inject_now():
     return {'now': datetime.now()}
 
+@app.context_processor
+def utility_functions():
+    def connection_status(user_id, connected_id):
+        return Connection.query.filter(
+            ((Connection.user_id == user_id) & (Connection.connected_id == connected_id)) |
+            ((Connection.user_id == connected_id) & (Connection.connected_id == user_id))
+        ).first()
+    
+    return dict(connection_status=connection_status)
+
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
