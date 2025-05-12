@@ -1,0 +1,129 @@
+{% extends "admin/base_admin.html" %}
+
+{% block admin_title %}Kullanıcı Yönetimi{% endblock %}
+
+{% block admin_content %}
+<div class="admin-users">
+    <div class="admin-panel-card">
+        <div class="card-header-actions">
+            <h3>Kullanıcılar</h3>
+            <a href="{{ url_for('admin_create_user') }}" class="btn primary">
+                <i class="fas fa-user-plus"></i> Kullanıcı Oluştur
+            </a>
+        </div>
+        
+        <div class="search-filter">
+            <input type="text" id="userSearch" placeholder="Kullanıcı ara...">
+            <div class="filter-options">
+                <label><input type="checkbox" id="showAdmins" checked> Adminler</label>
+                <label><input type="checkbox" id="showUsers" checked> Normal Kullanıcılar</label>
+                <label><input type="checkbox" id="showActive" checked> Aktif</label>
+                <label><input type="checkbox" id="showInactive" checked> Deaktif</label>
+            </div>
+        </div>
+        
+        <table class="admin-table" id="usersTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Kullanıcı</th>
+                    <th>E-posta</th>
+                    <th>Profil</th>
+                    <th>Kayıt Tarihi</th>
+                    <th>Admin</th>
+                    <th>Durum</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                    <tr class="user-row {{ 'admin-user' if user.is_admin else 'normal-user' }} {{ 'active-user' if user.is_active else 'inactive-user' }}">
+                        <td>{{ user.id }}</td>
+                        <td>
+                            <div class="user-info">
+                                <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) if user.profile_pic else url_for('static', filename='default_profile.png') }}" alt="{{ user.username }}">
+                                <span>{{ user.username }}</span>
+                            </div>
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            <a href="{{ url_for('profile', username=user.username) }}" target="_blank">
+                                <i class="fas fa-external-link-alt"></i> Görüntüle
+                            </a>
+                        </td>
+                        <td>{{ user.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                        <td>
+                            <span class="badge {{ 'admin' if user.is_admin else 'user' }}">
+                                {{ 'Admin' if user.is_admin else 'Kullanıcı' }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge {{ 'active' if user.is_active else 'inactive' }}">
+                                {{ 'Aktif' if user.is_active else 'Deaktif' }}
+                            </span>
+                        </td>
+                        <td class="action-buttons">
+                            <a href="{{ url_for('admin_user_detail', user_id=user.id) }}" class="btn-small">Detay</a>
+                            
+                            <form action="{{ url_for('toggle_user_active', user_id=user.id) }}" method="post" class="inline-form">
+                                <button type="submit" class="btn-small {{ 'danger' if user.is_active else 'success' }}">
+                                    {{ 'Deaktif Et' if user.is_active else 'Aktif Et' }}
+                                </button>
+                            </form>
+                            
+                            <form action="{{ url_for('toggle_user_admin', user_id=user.id) }}" method="post" class="inline-form">
+                                <button type="submit" class="btn-small {{ 'danger' if user.is_admin else 'primary' }}">
+                                    {{ 'Admin Yetkisini Kaldır' if user.is_admin else 'Admin Yap' }}
+                                </button>
+                            </form>
+                            
+                            <form action="{{ url_for('delete_user', user_id=user.id) }}" method="post" class="inline-form" onsubmit="return confirm('Bu kullanıcıyı ve tüm verilerini silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')">
+                                <button type="submit" class="btn-small danger">Sil</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('userSearch');
+        const showAdmins = document.getElementById('showAdmins');
+        const showUsers = document.getElementById('showUsers');
+        const showActive = document.getElementById('showActive');
+        const showInactive = document.getElementById('showInactive');
+        const userRows = document.querySelectorAll('#usersTable tbody tr');
+        
+        function filterUsers() {
+            const searchText = searchInput.value.toLowerCase();
+            
+            userRows.forEach(row => {
+                const username = row.querySelector('.user-info span').textContent.toLowerCase();
+                const email = row.cells[2].textContent.toLowerCase();
+                
+                const isAdmin = row.classList.contains('admin-user');
+                const isActive = row.classList.contains('active-user');
+                
+                const matchesSearch = username.includes(searchText) || email.includes(searchText);
+                const matchesAdminFilter = (isAdmin && showAdmins.checked) || (!isAdmin && showUsers.checked);
+                const matchesActiveFilter = (isActive && showActive.checked) || (!isActive && showInactive.checked);
+                
+                if (matchesSearch && matchesAdminFilter && matchesActiveFilter) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        searchInput.addEventListener('input', filterUsers);
+        showAdmins.addEventListener('change', filterUsers);
+        showUsers.addEventListener('change', filterUsers);
+        showActive.addEventListener('change', filterUsers);
+        showInactive.addEventListener('change', filterUsers);
+    });
+</script>
+{% endblock %}

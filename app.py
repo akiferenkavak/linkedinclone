@@ -4,6 +4,7 @@ from werkzeug.utils import secure_filename
 from flask_migrate import Migrate
 import os
 from datetime import datetime
+from functools import wraps
 from models import db, User, Post, Comment, Like, Experience, Education, Skill, Message, Connection
 
 
@@ -482,7 +483,242 @@ def utility_functions():
     return dict(connection_status=connection_status)
 
 
+# Admin required decorator
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash('Bu sayfaya erişim izniniz yok!', 'danger')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
 
+# Admin Dashboard
+@app.route('/admin')
+@login_required
+@admin_required
+def admin_dashboard():
+    total_users = User.query.count()
+    total_posts = Post.query.count()
+    total_comments = Comment.query.count()
+    total_connections = Connection.query.filter_by(status='accepted').count()
+    
+    # Son 5 kullanıcı
+    recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
+    
+    # Son 5 gönderi
+    recent_posts = Post.query.order_by(Post.created_at.desc()).limit(5).all()
+    
+    return render_template('admin/dashboard.html', 
+                           total_users=total_users,
+                           total_posts=total_posts,
+                           total_comments=total_comments,
+                           total_connections=total_connections,
+                           recent_users=recent_users,
+                           recent_posts=recent_posts)
+
+# Kullanıcı Yönetimi
+@app.route('/admin/users')
+@login_required
+@admin_required
+def admin_users():
+    users = User.query.all()
+    return render_template('admin/users.html', users=users)
+
+# Kullanıcı Detayı
+@app.route('/admin/users/<int:user_id>')
+@login_required
+@admin_required
+def admin_user_detail(user_id):
+    user = User.query.get_or_404(user_id)
+    posts = Post.query.filter_by(author=user).order_by(Post.created_at.desc()).all()
+    connections = Connection.query.filter(
+        ((Connection.user_id == user.id) | (Connection.connected_id == user.id)) &
+        (Connection.status == 'accepted')
+    ).all()
+    
+    return render_template('admin/user_detail.html', user=user, posts=posts, connections=connections)
+
+# Kullanıcıyı Aktif/Deaktif Etme
+@app.route('/admin/users/<int:user_id>/toggle_active', methods=['POST'])
+@login_required
+@admin_required
+def toggle_user_active(user_id):
+    user = User.query.get_or_404(user_id)
+    
+    # Admin kendini deaktif edemez
+    if user.id == current_user.id:
+        flash('Kendi hesabınızı deaktif edemezsiniz!', 'danger')
+        return redirect(url_for('admin_users'))
+    
+    user.is_active = not user.is_active
+    db.session.commit()
+    
+    status = 'aktif' if user.is_active else 'deaktif'
+    flash(f'{user.username} kullanıcısı {status} edildi!', 'success')
+    return redirect(url_for('admin_users'))
+
+# Kullanıcıyı Admin Yapma/Çıkarma
+@app.route('/admin/users/<int:user_id>/toggle_admin', methods=['POST'])
+@login_required
+@admin_required
+def toggle_user_admin(user_id):
+    user = User.query.get_or_404(user_id)
+    
+    # Admin kendini admin olmaktan çıkaramaz
+    if user.id == current_user.id:
+        flash('Kendi admin yetkinizi kaldıramazsınız!', 'danger')
+        return redirect(url_for('admin_users'))
+    
+    user.is_admin = not user.is_admin
+    db.session.commit()
+    
+    status = 'admin yapıldı' if user.is_admin else 'admin yetkisi kaldırıldı'
+    flash(f'{user.username} kullanıcısı {status}!', 'success')
+    return redirect(url_for('admin_users'))
+
+# Kullanıcı Silme
+@app.route('/admin/users/<int:user_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_user(user_id):
+    user = User.query.get_or_404(user_id)
+    
+    # Admin kendini silemez
+    if user.id == current_user.id:
+        flash('Kendi hesabınızı silemezsiniz!', 'danger')
+        return redirect(url_for('admin_users'))
+    
+    # İlişkili verileri sil (cascade ile otomatik silinmeyecek olanlar)
+    Like.query.filter_by(user_id=user.id).delete()
+    Comment.query.filter_by(user_id=user.id).delete()
+    Post.query.filter_by(user_id=user.id).delete()
+    Experience.query.filter_by(user_id=user.id).delete()
+    Education.query.filter_by(user_id=user.id).delete()
+    Skill.query.filter_by(user_id=user.id).delete()
+    Message.query.filter((Message.sender_id == user.id) | (Message.recipient_id == user.id)).delete()
+    Connection.query.filter((Connection.user_id == user.id) | (Connection.connected_id == user.id)).delete()
+    
+    db.session.delete(user)
+    db.session.commit()
+    
+    flash(f'{user.username} kullanıcısı ve tüm ilişkili verileri silindi!', 'success')
+    return redirect(url_for('admin_users'))
+
+# Gönderi Yönetimi
+@app.route('/admin/posts')
+@login_required
+@admin_required
+def admin_posts():
+    posts = Post.query.order_by(Post.created_at.desc()).all()
+    return render_template('admin/posts.html', posts=posts)
+
+# Gönderi Silme (Admin)
+@app.route('/admin/posts/<int:post_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    
+    # İlişkili verileri sil
+    Like.query.filter_by(post_id=post.id).delete()
+    Comment.query.filter_by(post_id=post.id).delete()
+    
+    db.session.delete(post)
+    db.session.commit()
+    
+    flash('Gönderi silindi!', 'success')
+    return redirect(url_for('admin_posts'))
+
+# Sistem İstatistikleri
+@app.route('/admin/statistics')
+@login_required
+@admin_required
+def admin_statistics():
+    # Kullanıcı istatistikleri
+    total_users = User.query.count()
+    active_users = User.query.filter_by(is_active=True).count()
+    admin_users = User.query.filter_by(is_admin=True).count()
+    
+    # Gönderi istatistikleri
+    total_posts = Post.query.count()
+    posts_with_images = Post.query.filter(Post.image_url.isnot(None)).count()
+    
+    # Etkileşim istatistikleri
+    total_comments = Comment.query.count()
+    total_likes = Like.query.count()
+    
+    # Bağlantı istatistikleri
+    total_connections = Connection.query.filter_by(status='accepted').count()
+    pending_connections = Connection.query.filter_by(status='pending').count()
+    
+    # En aktif kullanıcılar (gönderi sayısına göre)
+    most_active_users = db.session.query(
+        User.username, User.profile_pic, db.func.count(Post.id).label('post_count')
+    ).join(Post).group_by(User.id).order_by(db.desc('post_count')).limit(5).all()
+    
+    # Aylık kullanıcı kaydı
+    month_data = db.session.query(
+        db.func.strftime('%Y-%m', User.created_at).label('month'),
+        db.func.count(User.id).label('user_count')
+    ).group_by('month').order_by('month').all()
+    
+    months = [item[0] for item in month_data]
+    user_counts = [item[1] for item in month_data]
+    
+    return render_template('admin/statistics.html',
+                          total_users=total_users,
+                          active_users=active_users,
+                          admin_users=admin_users,
+                          total_posts=total_posts,
+                          posts_with_images=posts_with_images,
+                          total_comments=total_comments,
+                          total_likes=total_likes,
+                          total_connections=total_connections,
+                          pending_connections=pending_connections,
+                          most_active_users=most_active_users,
+                          months=months,
+                          user_counts=user_counts)
+
+# Genel Ayarlar
+@app.route('/admin/settings', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_settings():
+    if request.method == 'POST':
+        # Şimdilik bir ayar yok, ilerde eklenebilir
+        flash('Ayarlar güncellendi!', 'success')
+        return redirect(url_for('admin_settings'))
+    
+    return render_template('admin/settings.html')
+
+# Admin olarak hızlı kullanıcı oluşturma
+@app.route('/admin/create_user', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_create_user():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        is_admin = 'is_admin' in request.form
+        
+        # Kullanıcı adı veya e-posta zaten kullanılıyor mu kontrol et
+        user_exists = User.query.filter((User.username == username) | (User.email == email)).first()
+        if user_exists:
+            flash('Kullanıcı adı veya e-posta zaten kullanılıyor.', 'danger')
+            return redirect(url_for('admin_create_user'))
+        
+        # Yeni kullanıcı oluştur
+        user = User(username=username, email=email, is_admin=is_admin)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        
+        flash(f'Kullanıcı {username} başarıyla oluşturuldu!', 'success')
+        return redirect(url_for('admin_users'))
+    
+    return render_template('admin/create_user.html')
 
 
 if __name__ == '__main__':

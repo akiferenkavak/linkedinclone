@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-sidebar">
+        <h3>Admin Panel</h3>
+        <ul>
+            <li><a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint == 'admin_dashboard' else '' }}">Dashboard</a></li>
+            <li><a href="{{ url_for('admin_users') }}" class="{{ 'active' if request.endpoint == 'admin_users' else '' }}">Kullanıcılar</a></li>
+            <li><a href="{{ url_for('admin_posts') }}" class="{{ 'active' if request.endpoint == 'admin_posts' else '' }}">Gönderiler</a></li>
+            <li><a href="{{ url_for('admin_statistics') }}" class="{{ 'active' if request.endpoint == 'admin_statistics' else '' }}">İstatistikler</a></li>
+            <li><a href="{{ url_for('admin_settings') }}" class="{{ 'active' if request.endpoint == 'admin_settings' else '' }}">Ayarlar</a></li>
+            <li><a href="{{ url_for('admin_create_user') }}" class="{{ 'active' if request.endpoint == 'admin_create_user' else '' }}">Kullanıcı Oluştur</a></li>
+            <li><a href="{{ url_for('index') }}">Siteye Dön</a></li>
+        </ul>
+    </div>
+    
+    <div class="admin-content">
+        <div class="admin-header">
+            <h2>{% block admin_title %}Admin Panel{% endblock %}</h2>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category else 'success' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block admin_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

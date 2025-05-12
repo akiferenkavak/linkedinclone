@@ -29,6 +29,8 @@ class User(UserMixin, db.Model):
     educations = db.relationship('Education', backref='user', lazy='dynamic')
     skills = db.relationship('Skill', backref='user', lazy='dynamic')
     is_active = db.Column(db.Boolean, default=True)  # Kullanıcı aktif mi?
+    is_admin = db.Column(db.Boolean, default=False)  # Admin mi?
+
 
     def get_id(self):
         return str(self.id)  # id'yi string olarak döndürün
